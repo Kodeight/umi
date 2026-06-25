@@ -1,0 +1,62 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600&family=Inter:wght@300;400;500;600;700&family=Pinyon+Script&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Cormorant Garamond", serif;
+  --font-script: "Pinyon Script", cursive;
+  --color-bg-primary: #050505;
+  --color-bg-secondary: #0B0B0B;
+  --color-bg-tertiary: #121212;
+  --color-gold-accent: #D4A762;
+  --color-gold-hover: #E0B878;
+  --color-text-luxury: #F8F6F2;
+}
+
+/* Custom scrollbar and smooth transitions */
+html {
+  scroll-behavior: smooth;
+  background-color: #050505;
+  color: #F8F6F2;
+  overflow-x: hidden;
+}
+
+body {
+  font-family: var(--font-sans);
+}
+
+::selection {
+  background-color: #D4A762;
+  color: #050505;
+}
+
+/* Scrollbar styles */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #050505;
+}
+::-webkit-scrollbar-thumb {
+  background: #222;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #D4A762;
+}
+
+/* Utility classes for animations */
+.text-mask {
+  overflow: hidden;
+}
+
+.blur-reveal {
+  filter: blur(10px);
+  opacity: 0;
+  transition: filter 1.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.blur-reveal.active {
+  filter: blur(0px);
+  opacity: 1;
+}

@@ -1,0 +1,6 @@
+{
+  "name": "UMI - Luxury Japanese Restaurant",
+  "description": "A premium, cinematic digital experience and reservation platform for UMI, a Michelin-starred Japanese restaurant.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
