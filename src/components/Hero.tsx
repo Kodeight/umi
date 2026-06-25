@@ -43,20 +43,41 @@ export default function Hero({ onOpenReservations, onScrollToPhilosophy }: HeroP
     }, 150);
   }, []);
 
-  // ─── Draw frame ──────────────────────────────────────────────────────────
+  // ─── Draw frame with closest loaded frame fallback ───────────────────────
   const drawFrame = useCallback((idx: number) => {
     const canvas = canvasRef.current;
     const frames = framesRef.current;
     if (!canvas || frames.length === 0) return;
-    const frame = frames[Math.max(0, Math.min(frames.length - 1, idx))];
-    if (!frame) return;
+
+    // Find the closest loaded frame to avoid black screen transitions
+    let frame = frames[idx];
+    if (!frame || !frame.complete || !frame.naturalWidth) {
+      let closestIdx = -1;
+      let minDiff = Infinity;
+      for (let i = 0; i < frames.length; i++) {
+        const f = frames[i];
+        if (f && f.complete && f.naturalWidth) {
+          const diff = Math.abs(i - idx);
+          if (diff < minDiff) {
+            minDiff = diff;
+            closestIdx = i;
+          }
+        }
+      }
+      if (closestIdx !== -1) {
+        frame = frames[closestIdx];
+      } else {
+        return; // No frames loaded at all yet
+      }
+    }
+
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     const cw = canvas.width;
     const ch = canvas.height;
-    const iw = frame.naturalWidth || cw;
-    const ih = frame.naturalHeight || ch;
+    const iw = frame.naturalWidth;
+    const ih = frame.naturalHeight;
     const scale = Math.max(cw / iw, ch / ih);
     const sw = iw * scale;
     const sh = ih * scale;
@@ -64,28 +85,21 @@ export default function Hero({ onOpenReservations, onScrollToPhilosophy }: HeroP
     ctx.drawImage(frame, (cw - sw) / 2, (ch - sh) / 2, sw, sh);
   }, []);
 
-  // ─── Pre-load frames ──────────────────────────────────────────────────────
+  // ─── Pre-load frames in parallel ──────────────────────────────────────────
   useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      const imgs: HTMLImageElement[] = [];
-      for (let i = 1; i <= FRAME_COUNT; i++) {
-        const img = new Image();
-        img.src = getFramePath(i);
-        await new Promise<void>((resolve) => {
-          img.onload = () => resolve();
-          img.onerror = () => resolve();
-        });
-        if (cancelled) return;
-        imgs.push(img);
-      }
-      framesRef.current = imgs;
-      drawFrame(0);
-    };
-    load();
-    return () => {
-      cancelled = true;
-    };
+    const imgs: HTMLImageElement[] = [];
+    for (let i = 1; i <= FRAME_COUNT; i++) {
+      const img = new Image();
+      img.src = getFramePath(i);
+      img.onload = () => {
+        // Draw the first frame as soon as it loads to show the hero background immediately
+        if (i === 1) {
+          drawFrame(0);
+        }
+      };
+      imgs.push(img);
+    }
+    framesRef.current = imgs;
   }, [drawFrame]);
 
   // ─── Resize canvas ────────────────────────────────────────────────────────
