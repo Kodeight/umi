@@ -23,25 +23,8 @@ const getFramePath = (index: number) => {
 export default function Hero({ onOpenReservations, onScrollToPhilosophy }: HeroProps) {
   const sectionRef = useRef<HTMLElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const framesRef = useRef<HTMLImageElement[]>([]);
-  const frameIndexRef = useRef(0);
-  const isLockedRef = useRef(true);
-  const accumulatedRef = useRef(0);
-  const animFrameRef = useRef<number>(0);
-  const touchStartYRef = useRef<number | null>(null);
-
-  const isWheelingRef = useRef(false);
-  const wheelTimeoutRef = useRef<number | null>(null);
-
-  const setWheeling = useCallback(() => {
-    isWheelingRef.current = true;
-    if (wheelTimeoutRef.current !== null) {
-      window.clearTimeout(wheelTimeoutRef.current);
-    }
-    wheelTimeoutRef.current = window.setTimeout(() => {
-      isWheelingRef.current = false;
-    }, 150);
-  }, []);
 
   // ─── Draw frame with closest loaded frame fallback ───────────────────────
   const drawFrame = useCallback((idx: number) => {
@@ -49,7 +32,6 @@ export default function Hero({ onOpenReservations, onScrollToPhilosophy }: HeroP
     const frames = framesRef.current;
     if (!canvas || frames.length === 0) return;
 
-    // Find the closest loaded frame to avoid black screen transitions
     let frame = frames[idx];
     if (!frame || !frame.complete || !frame.naturalWidth) {
       let closestIdx = -1;
@@ -67,7 +49,7 @@ export default function Hero({ onOpenReservations, onScrollToPhilosophy }: HeroP
       if (closestIdx !== -1) {
         frame = frames[closestIdx];
       } else {
-        return; // No frames loaded at all yet
+        return;
       }
     }
 
@@ -92,7 +74,6 @@ export default function Hero({ onOpenReservations, onScrollToPhilosophy }: HeroP
       const img = new Image();
       img.src = getFramePath(i);
       img.onload = () => {
-        // Draw the first frame as soon as it loads to show the hero background immediately
         if (i === 1) {
           drawFrame(0);
         }
@@ -109,7 +90,15 @@ export default function Hero({ onOpenReservations, onScrollToPhilosophy }: HeroP
       if (canvas) {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
-        drawFrame(frameIndexRef.current);
+        // Re-draw current scroll position frame
+        const section = sectionRef.current;
+        if (section) {
+          const rect = section.getBoundingClientRect();
+          const totalScroll = section.offsetHeight - window.innerHeight;
+          const progress = totalScroll > 0 ? Math.min(1, Math.max(0, -rect.top / totalScroll)) : 0;
+          const idx = Math.min(FRAME_COUNT - 1, Math.floor(progress * FRAME_COUNT));
+          drawFrame(idx);
+        }
       }
     };
     resize();
@@ -117,108 +106,35 @@ export default function Hero({ onOpenReservations, onScrollToPhilosophy }: HeroP
     return () => window.removeEventListener('resize', resize);
   }, [drawFrame]);
 
-  // ─── Scroll-lock + frame stepping ──────────────────────────────────────────
+  // ─── Native Scroll-driven Frame Update ────────────────────────────────────
   useEffect(() => {
-    const DELTA_PER_FRAME = 35; // Pixels to advance one frame
+    const onScroll = () => {
+      const section = sectionRef.current;
+      const canvas = canvasRef.current;
+      if (!section || !canvas) return;
 
-    const advance = (delta: number) => {
-      if (framesRef.current.length === 0) return;
+      const rect = section.getBoundingClientRect();
+      const totalScroll = section.offsetHeight - window.innerHeight;
+      const progress = totalScroll > 0 ? Math.min(1, Math.max(0, -rect.top / totalScroll)) : 0;
+      const idx = Math.min(FRAME_COUNT - 1, Math.floor(progress * FRAME_COUNT));
 
-      accumulatedRef.current += delta;
-      const steps = Math.round(accumulatedRef.current / DELTA_PER_FRAME);
-      if (steps === 0) return;
-      accumulatedRef.current -= steps * DELTA_PER_FRAME;
+      drawFrame(idx);
 
-      const newIdx = Math.max(0, Math.min(FRAME_COUNT - 1, frameIndexRef.current + steps));
-      if (newIdx !== frameIndexRef.current) {
-        frameIndexRef.current = newIdx;
-        cancelAnimationFrame(animFrameRef.current);
-        animFrameRef.current = requestAnimationFrame(() => drawFrame(newIdx));
-      }
-
-      // Unlock if we reach the last frame (scrolling down)
-      if (newIdx >= FRAME_COUNT - 1) {
-        isLockedRef.current = false;
-      }
-      // Re-lock if we scroll up from the last frame
-      if (newIdx < FRAME_COUNT - 1) {
-        isLockedRef.current = true;
+      // Fade out content overlay smoothly as user scrolls down the frames
+      if (contentRef.current) {
+        contentRef.current.style.opacity = String(Math.max(0, 1 - progress * 1.5));
+        contentRef.current.style.transform = `translateY(${progress * -30}px)`;
       }
     };
 
-    const onWheel = (e: WheelEvent) => {
-      setWheeling();
-
-      // Re-lock if we are at top of page and user scrolls up
-      if (window.scrollY === 0 && e.deltaY < 0) {
-        isLockedRef.current = true;
-      }
-
-      if (!isLockedRef.current) return;
-
-      e.preventDefault();
-      e.stopPropagation();
-      advance(e.deltaY);
-    };
-
-    const onTouchStart = (e: TouchEvent) => {
-      touchStartYRef.current = e.touches[0].clientY;
-    };
-
-    const onTouchMove = (e: TouchEvent) => {
-      if (touchStartYRef.current === null) return;
-
-      const delta = touchStartYRef.current - e.touches[0].clientY;
-      touchStartYRef.current = e.touches[0].clientY;
-
-      setWheeling();
-
-      // Re-lock if at top of page and swiping down (scrolling up)
-      if (window.scrollY === 0 && delta < 0) {
-        isLockedRef.current = true;
-      }
-
-      if (!isLockedRef.current) return;
-
-      e.preventDefault();
-      e.stopPropagation();
-      advance(delta);
-    };
-
-    window.addEventListener('wheel', onWheel, { passive: false });
-    window.addEventListener('touchstart', onTouchStart, { passive: true });
-    window.addEventListener('touchmove', onTouchMove, { passive: false });
-
-    return () => {
-      window.removeEventListener('wheel', onWheel);
-      window.removeEventListener('touchstart', onTouchStart);
-      window.removeEventListener('touchmove', onTouchMove);
-      cancelAnimationFrame(animFrameRef.current);
-      if (wheelTimeoutRef.current !== null) {
-        window.clearTimeout(wheelTimeoutRef.current);
-      }
-    };
-  }, [drawFrame, setWheeling]);
-
-  // ─── Reset / Re-lock on Scroll to Top ──────────────────────────────────────
-  useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY === 0) {
-        isLockedRef.current = true;
-        // Only reset to frame 0 if not actively scrolling/wheeling manually
-        if (!isWheelingRef.current) {
-          frameIndexRef.current = 0;
-          drawFrame(0);
-        }
-      }
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener('scroll', onScroll);
   }, [drawFrame]);
 
   return (
-    <section ref={sectionRef} id="hero" className="relative h-screen">
-      {/* Sticky container matching original layout structure */}
+    <section ref={sectionRef} id="hero" className="relative h-[300vh] w-full z-0">
+      {/* Sticky full-screen container matching Chronos architecture */}
       <div 
         className="sticky top-0 h-screen w-full flex items-center justify-start px-6 md:px-12 lg:px-24 overflow-hidden pt-20"
         style={{ zIndex: 0 }}
@@ -232,8 +148,11 @@ export default function Hero({ onOpenReservations, onScrollToPhilosophy }: HeroP
         <div className="absolute inset-0 bg-gradient-to-r from-bg-primary/50 via-bg-primary/20 to-transparent z-10 pointer-events-none" />
         <div className="absolute inset-0 bg-gradient-to-t from-bg-primary/60 via-transparent to-bg-primary/20 z-10 pointer-events-none" />
 
-        {/* Content Container (Restored original padding layout) */}
-        <div className="relative z-20 max-w-xl lg:max-w-2xl text-left flex flex-col justify-center select-none">
+        {/* Content Container */}
+        <div 
+          ref={contentRef}
+          className="relative z-20 max-w-xl lg:max-w-2xl text-left flex flex-col justify-center select-none will-change-transform will-change-opacity"
+        >
           {/* Category label */}
           <motion.div
             initial={{ opacity: 0, y: 15 }}

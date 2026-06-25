@@ -9,7 +9,7 @@ import { motion } from 'motion/react';
 export default function Philosophy() {
   return (
     <section 
-      className="relative min-h-screen flex flex-col justify-center items-center px-6 md:px-12 lg:px-24 bg-bg-primary/45 overflow-hidden z-20 border-t border-b border-white/5 py-24"
+      className="relative min-h-screen flex flex-col justify-center items-center px-6 md:px-12 lg:px-24 bg-bg-primary overflow-hidden z-20 border-t border-b border-white/5 py-24"
       id="philosophy"
     >
       {/* Background image overlay */}
@@ -19,7 +19,7 @@ export default function Philosophy() {
           alt="Chef Background" 
           className="w-full h-full object-cover opacity-30 grayscale contrast-125"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-bg-primary/95 via-bg-primary/45 to-bg-primary/95" />
+        <div className="absolute inset-0 bg-gradient-to-t from-bg-primary via-bg-primary/80 to-bg-primary" />
       </div>
 
       {/* Background radial glow */}
