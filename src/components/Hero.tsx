@@ -125,6 +125,16 @@ export default function Hero({ onOpenReservations, onScrollToPhilosophy }: HeroP
         contentRef.current.style.opacity = String(Math.max(0, 1 - progress * 1.5));
         contentRef.current.style.transform = `translateY(${progress * -30}px)`;
       }
+
+      // Toggle display of fixed container to avoid rendering overhead when fully covered
+      const container = canvas.parentElement;
+      if (container) {
+        if (progress >= 1) {
+          container.style.display = 'none';
+        } else {
+          container.style.display = 'flex';
+        }
+      }
     };
 
     window.addEventListener('scroll', onScroll, { passive: true });
@@ -134,9 +144,9 @@ export default function Hero({ onOpenReservations, onScrollToPhilosophy }: HeroP
 
   return (
     <section ref={sectionRef} id="hero" className="relative h-[300vh] w-full z-0">
-      {/* Sticky full-screen container matching Chronos architecture */}
+      {/* Fixed container matching Chronos layout (immune to parent overflow constraints) */}
       <div 
-        className="sticky top-0 h-screen w-full flex items-center justify-start px-6 md:px-12 lg:px-24 overflow-hidden pt-20"
+        className="fixed top-0 left-0 w-full h-screen flex items-center justify-start px-6 md:px-12 lg:px-24 overflow-hidden pt-20"
         style={{ zIndex: 0 }}
       >
         <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
