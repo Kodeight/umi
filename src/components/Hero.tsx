@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useRef, useCallback } from 'react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { ArrowRight } from 'lucide-react';
 
 interface HeroProps {
@@ -13,11 +13,12 @@ interface HeroProps {
 }
 
 const FRAME_COUNT = 69;
+const CDN_BASE = 'https://cdn.jsdelivr.net/gh/Kodeight/umi@main/public/frames/';
 
-const getFramePath = (index: number) => {
+const getFrameUrl = (index: number) => {
   const padded = String(index).padStart(4, '0');
   const time = ((index - 1) * 0.1).toFixed(2);
-  return `/frames/frame_${padded}_${time}s.webp`;
+  return `${CDN_BASE}frame_${padded}_${time}s.webp`;
 };
 
 export default function Hero({ onOpenReservations, onScrollToPhilosophy }: HeroProps) {
@@ -29,6 +30,9 @@ export default function Hero({ onOpenReservations, onScrollToPhilosophy }: HeroP
   const accumulatedRef = useRef(0);
   const animFrameRef = useRef<number>(0);
   const touchStartYRef = useRef<number | null>(null);
+
+  const [loadingProgress, setLoadingProgress] = React.useState(0);
+  const [isLoading, setIsLoading] = React.useState(true);
 
   const isWheelingRef = useRef(false);
   const wheelTimeoutRef = useRef<number | null>(null);
@@ -84,20 +88,47 @@ export default function Hero({ onOpenReservations, onScrollToPhilosophy }: HeroP
     ctx.drawImage(frame, (cw - sw) / 2, (ch - sh) / 2, sw, sh);
   }, []);
 
-  // ─── Pre-load frames in parallel ──────────────────────────────────────────
+  // ─── Pre-load frames in parallel with caching and error handling ──────────
   useEffect(() => {
+    let loadedCount = 0;
     const imgs: HTMLImageElement[] = [];
-    for (let i = 1; i <= FRAME_COUNT; i++) {
-      const img = new Image();
-      img.src = getFramePath(i);
-      img.onload = () => {
-        if (i === 1) {
-          drawFrame(0);
-        }
-      };
-      imgs.push(img);
-    }
-    framesRef.current = imgs;
+
+    const updateProgress = () => {
+      loadedCount++;
+      const progress = Math.round((loadedCount / FRAME_COUNT) * 100);
+      setLoadingProgress(progress);
+      if (loadedCount === FRAME_COUNT) {
+        setIsLoading(false);
+        drawFrame(0);
+      }
+    };
+
+    const loadPromise = async () => {
+      const promises = [];
+      for (let i = 1; i <= FRAME_COUNT; i++) {
+        const img = new Image();
+        imgs.push(img);
+        
+        const p = new Promise<void>((resolve) => {
+          img.onload = () => {
+            updateProgress();
+            resolve();
+          };
+          img.onerror = () => {
+            console.error(`Failed to load frame from URL: ${getFrameUrl(i)}`);
+            // Increment progress and resolve anyway to avoid blocking the app
+            updateProgress();
+            resolve();
+          };
+          img.src = getFrameUrl(i);
+        });
+        promises.push(p);
+      }
+      framesRef.current = imgs;
+      await Promise.all(promises);
+    };
+
+    loadPromise();
   }, [drawFrame]);
 
   // ─── Resize canvas ────────────────────────────────────────────────────────
@@ -120,7 +151,7 @@ export default function Hero({ onOpenReservations, onScrollToPhilosophy }: HeroP
     const DELTA_PER_FRAME = 35; // Pixels to advance one frame
 
     const advance = (delta: number) => {
-      if (framesRef.current.length === 0) return;
+      if (framesRef.current.length === 0 || isLoading) return;
 
       accumulatedRef.current += delta;
       const steps = Math.round(accumulatedRef.current / DELTA_PER_FRAME);
@@ -145,6 +176,10 @@ export default function Hero({ onOpenReservations, onScrollToPhilosophy }: HeroP
     };
 
     const onWheel = (e: WheelEvent) => {
+      if (isLoading) {
+        e.preventDefault();
+        return;
+      }
       setWheeling();
 
       // Re-lock if we are at top of page and user scrolls up
@@ -164,6 +199,10 @@ export default function Hero({ onOpenReservations, onScrollToPhilosophy }: HeroP
     };
 
     const onTouchMove = (e: TouchEvent) => {
+      if (isLoading) {
+        e.preventDefault();
+        return;
+      }
       if (touchStartYRef.current === null) return;
 
       const delta = touchStartYRef.current - e.touches[0].clientY;
@@ -196,11 +235,12 @@ export default function Hero({ onOpenReservations, onScrollToPhilosophy }: HeroP
         window.clearTimeout(wheelTimeoutRef.current);
       }
     };
-  }, [drawFrame, setWheeling]);
+  }, [drawFrame, setWheeling, isLoading]);
 
   // ─── Reset / Re-lock on Scroll to Top ──────────────────────────────────────
   useEffect(() => {
     const handleScroll = () => {
+      if (isLoading) return;
       if (window.scrollY === 0) {
         isLockedRef.current = true;
         if (!isWheelingRef.current) {
@@ -211,10 +251,38 @@ export default function Hero({ onOpenReservations, onScrollToPhilosophy }: HeroP
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [drawFrame]);
+  }, [drawFrame, isLoading]);
 
   return (
     <section ref={sectionRef} id="hero" className="relative h-screen">
+      {/* Loading Overlay */}
+      <AnimatePresence>
+        {isLoading && (
+          <motion.div
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.8, ease: 'easeInOut' }}
+            className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-bg-primary text-text-luxury select-none font-sans"
+          >
+            <div className="flex flex-col items-center gap-4">
+              <span className="text-xs uppercase tracking-[0.4em] text-gold-accent font-medium animate-pulse">
+                Loading cinematic experience...
+              </span>
+              <span className="font-serif text-4xl sm:text-5xl font-light text-text-luxury">
+                {loadingProgress}%
+              </span>
+              <div className="w-48 h-[2px] bg-white/10 rounded-full overflow-hidden mt-2 relative">
+                <motion.div
+                  className="h-full bg-gold-accent absolute left-0 top-0"
+                  style={{ width: `${loadingProgress}%` }}
+                  transition={{ ease: 'easeOut', duration: 0.1 }}
+                />
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Sticky full-screen container matching original layout structure */}
       <div 
         className="sticky top-0 h-screen w-full flex items-center justify-start px-6 md:px-12 lg:px-24 overflow-hidden pt-20"
