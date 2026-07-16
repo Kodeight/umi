@@ -3,6 +3,7 @@ build/
 dist/
 .git/
 coverage/
+.blackbox/
 .DS_Store
 *.log
 .env*

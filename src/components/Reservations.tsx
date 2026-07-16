@@ -148,16 +148,16 @@ export default function Reservations({
                     {/* Visual diagram representation of UMI counter */}
                     <div className="relative flex flex-col items-center gap-6 py-6 border border-gold-accent/10 rounded-sm bg-bg-primary/40">
                       {/* Chef Counter Bar Area */}
-                      <div className="w-[85%] h-5 bg-bg-tertiary border-b border-gold-accent/40 rounded-t-lg flex items-center justify-center relative shadow-[inset_0_-10px_20px_rgba(0,0,0,0.8)]">
-                        <span className="text-[8px] tracking-[0.3em] uppercase text-gold-accent/60 font-medium font-mono">
+                      <div className="w-[85%] h-5 bg-bg-tertiary border-b border-gold-accent/40 rounded-t-lg flex items-center justify-center relative shadow-[inset_0_-10px_20px_rgba(0,0,0,0.8)] px-2">
+                        <span className="text-[7px] sm:text-[8px] tracking-[0.2em] sm:tracking-[0.3em] uppercase text-gold-accent/60 font-medium font-mono text-center truncate">
                           Chef Kenji Sato’s Prep Area
                         </span>
                         {/* Glow light effect under counter */}
-                        <div className="absolute -bottom-[2px] left-1/2 -translate-x-1/2 w-32 h-[1px] bg-gold-accent/40 blur-[1px]" />
+                        <div className="absolute -bottom-[2px] left-1/2 -translate-x-1/2 w-24 sm:w-32 h-[1px] bg-gold-accent/40 blur-[1px]" />
                       </div>
 
                       {/* Seat selection row */}
-                      <div className="flex justify-between w-[90%] gap-1 px-2">
+                      <div className="flex flex-wrap sm:flex-nowrap justify-center sm:justify-between w-[95%] sm:w-[90%] gap-2 sm:gap-1 px-1 sm:px-2">
                         {AVAILABLE_SEATS.map((seat) => {
                           const isBooked = seat === 2 || seat === 7; // Mock some booked seats
                           const isSelected = selectedSeat === seat;
@@ -167,7 +167,7 @@ export default function Reservations({
                               type="button"
                               disabled={isBooked}
                               onClick={() => setSelectedSeat(seat)}
-                              className={`flex flex-col items-center gap-1.5 focus:outline-none flex-1 transition-all duration-300 ${
+                              className={`flex flex-col items-center gap-1 focus:outline-none min-w-[32px] sm:min-w-0 sm:flex-1 transition-all duration-300 ${
                                 isBooked 
                                   ? 'opacity-20 cursor-not-allowed' 
                                   : 'cursor-pointer hover:scale-110'
@@ -175,14 +175,14 @@ export default function Reservations({
                               id={`counter-seat-${seat}`}
                             >
                               {/* Armchair visual component */}
-                              <div className={`w-8 h-8 rounded-sm flex items-center justify-center border transition-all duration-500 ${
+                              <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-sm flex items-center justify-center border transition-all duration-500 ${
                                 isSelected
                                   ? 'bg-gold-accent/20 border-gold-accent text-gold-accent shadow-[0_0_15px_rgba(212,167,98,0.3)]'
-                                  : 'bg-bg-tertiary border-white/10 text-text-luxury/40 group-hover:text-text-luxury/80'
+                                  : 'bg-bg-tertiary border-white/10 text-text-luxury/40'
                               }`}>
-                                <Armchair className="w-4 h-4" />
+                                <Armchair className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                               </div>
-                              <span className={`text-[8px] font-mono ${isSelected ? 'text-gold-accent font-bold' : 'text-text-luxury/30'}`}>
+                              <span className={`text-[7px] sm:text-[8px] font-mono ${isSelected ? 'text-gold-accent font-bold' : 'text-text-luxury/30'}`}>
                                 {seat}
                               </span>
                             </button>

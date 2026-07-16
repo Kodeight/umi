@@ -10,6 +10,7 @@ import { ArrowRight } from 'lucide-react';
 interface HeroProps {
   onOpenReservations: () => void;
   onScrollToPhilosophy: () => void;
+  onLoadingChange?: (loading: boolean) => void;
 }
 
 const FRAME_COUNT = 69;
@@ -21,7 +22,7 @@ const getFrameUrl = (index: number) => {
   return `${CDN_BASE}frame_${padded}_${time}s.webp`;
 };
 
-export default function Hero({ onOpenReservations, onScrollToPhilosophy }: HeroProps) {
+export default function Hero({ onOpenReservations, onScrollToPhilosophy, onLoadingChange }: HeroProps) {
   const sectionRef = useRef<HTMLElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const framesRef = useRef<HTMLImageElement[]>([]);
@@ -33,6 +34,13 @@ export default function Hero({ onOpenReservations, onScrollToPhilosophy }: HeroP
 
   const [loadingProgress, setLoadingProgress] = React.useState(0);
   const [isLoading, setIsLoading] = React.useState(true);
+
+  // Notify parent component about loader visibility changes
+  useEffect(() => {
+    if (onLoadingChange) {
+      onLoadingChange(isLoading);
+    }
+  }, [isLoading, onLoadingChange]);
 
   const isWheelingRef = useRef(false);
   const wheelTimeoutRef = useRef<number | null>(null);
@@ -265,19 +273,19 @@ export default function Hero({ onOpenReservations, onScrollToPhilosophy }: HeroP
             className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-bg-primary text-text-luxury select-none font-sans"
           >
             <div className="flex flex-col items-center gap-4">
-              <span className="text-xs uppercase tracking-[0.4em] text-gold-accent font-medium animate-pulse">
-                Loading cinematic experience...
-              </span>
               <span className="font-serif text-4xl sm:text-5xl font-light text-text-luxury">
                 {loadingProgress}%
               </span>
-              <div className="w-48 h-[2px] bg-white/10 rounded-full overflow-hidden mt-2 relative">
+              <div className="w-48 h-[2px] bg-white/10 rounded-full overflow-hidden mt-1 relative">
                 <motion.div
                   className="h-full bg-gold-accent absolute left-0 top-0"
                   style={{ width: `${loadingProgress}%` }}
                   transition={{ ease: 'easeOut', duration: 0.1 }}
                 />
               </div>
+              <span className="font-serif text-sm uppercase tracking-[0.3em] text-gold-accent animate-pulse mt-2">
+                Loading cinematic experience...
+              </span>
             </div>
           </motion.div>
         )}

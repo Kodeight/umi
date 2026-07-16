@@ -23,6 +23,7 @@ export default function App() {
   const [activeSection, setActiveSection] = useState<string>('hero');
   const [preSelectedPreference, setPreSelectedPreference] = useState<'Counter' | 'Private Room' | 'Window View' | null>(null);
   const [isPassModalOpen, setIsPassModalOpen] = useState<boolean>(false);
+  const [isHeroLoading, setIsHeroLoading] = useState<boolean>(true);
 
 
 
@@ -94,11 +95,13 @@ export default function App() {
     <div className="relative min-h-screen bg-bg-primary text-text-luxury select-none font-sans" id="app-root">
 
       {/* Navigation Header bar */}
-      <Navigation 
-        onOpenReservations={handleOpenReservations} 
-        onScrollToSection={handleScrollToSection}
-        activeSection={activeSection}
-      />
+      {!isHeroLoading && (
+        <Navigation 
+          onOpenReservations={handleOpenReservations} 
+          onScrollToSection={handleScrollToSection}
+          activeSection={activeSection}
+        />
+      )}
 
       {/* Page Content layout wrapper */}
       <main className="relative z-10 overflow-hidden">
@@ -107,6 +110,7 @@ export default function App() {
         <Hero 
           onOpenReservations={handleOpenReservations}
           onScrollToPhilosophy={() => handleScrollToSection('philosophy')}
+          onLoadingChange={setIsHeroLoading}
         />
 
         {/* Section 2: Philosophy */}
